@@ -30,7 +30,7 @@ func main() {
 
 	dsn := "postgres://web:database64@localhost:5432/links"
 
-	cfg := config.NewConfig(dsn, 2, 10, time.Hour)
+	cfg := config.NewConfig(dsn, "8080", 2, 10, time.Hour)
 
 	pool, err := postgresconnection.PostgresCreatePool(ctx, cfg, logg)
 	if err != nil {

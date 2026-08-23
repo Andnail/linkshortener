@@ -24,7 +24,7 @@ func NewPostgresRepository(db *pgxpool.Pool) repository.LinkRepository {
 
 func (p *PostgresRepository) Create(ctx context.Context, link *models.Link) error {
 	stmt := `INSERT INTO links (id, origin, shorten, created_at)
-	VALUES ($1, $2, $3,$4, $5);`
+	VALUES ($1, $2, $3,$4);`
 
 	_, err := p.db.Exec(ctx, stmt,
 		link.ID,

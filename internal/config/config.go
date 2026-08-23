@@ -10,9 +10,10 @@ type Config struct {
 	DBMaxConnLifetime time.Duration
 }
 
-func NewConfig(url string, minConn, maxConn int, maxLifetime time.Duration) *Config {
+func NewConfig(url, port string, minConn, maxConn int, maxLifetime time.Duration) *Config {
 	return &Config{
 		ConnURL:           url,
+		AppPort:           port,
 		DBMinConn:         minConn,
 		DBMaxConn:         maxConn,
 		DBMaxConnLifetime: maxLifetime,

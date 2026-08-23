@@ -10,7 +10,6 @@ import (
 	"linkshortener/internal/repository"
 	"log/slog"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -88,8 +87,6 @@ func generateRandomString() string {
 	if _, err := rand.Read(bytes); err != nil {
 		panic("failed to generate random string")
 	}
-	slice := make([]string, 0, 2)
-	slice = append(slice, string(hex.EncodeToString(bytes)[:length]), "com")
-	result := strings.Join(slice, ".")
-	return result
+
+	return string(hex.EncodeToString(bytes)[:length])
 }
