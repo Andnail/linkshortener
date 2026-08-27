@@ -23,6 +23,11 @@ func (r *RedisRepository) Set(ctx context.Context, link *models.Link) error {
 	if err := r.client.Set(ctx, link.Origin, link.Shorten, 0).Err(); err != nil {
 		return fmt.Errorf("Failed to create a redis row")
 	}
+
+	if err := r.client.Set(ctx, link.Shorten, link.Origin, 0).Err(); err != nil {
+		return fmt.Errorf("Failed to create a redis row")
+	}
+
 	return nil
 }
 
@@ -33,12 +38,8 @@ func (r *RedisRepository) Delete(ctx context.Context, url string) error {
 	return nil
 }
 
-func (r *RedisRepository) GetByShorten(ctx context.Context, shortLink string) (string, error) {
-	return "", nil
-}
-
-func (r *RedisRepository) GetByOrigin(ctx context.Context, originUrl string) (string, error) {
-	val, err := r.client.Get(ctx, originUrl).Result()
+func (r *RedisRepository) GetByString(ctx context.Context, url string) (string, error) {
+	val, err := r.client.Get(ctx, url).Result()
 	if err == nil {
 		return val, nil
 	}

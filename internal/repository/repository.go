@@ -7,8 +7,8 @@ import (
 
 type LinkRepository interface {
 	//GetAll(ctx context.Context) ([]models.Link, error)
-	GetByShorten(ctx context.Context, shortLink string) (string, error)
 	GetByOrigin(ctx context.Context, originLink string) (string, error)
+	GetByShorten(ctx context.Context, shortLink string) (string, error)
 	Delete(ctx context.Context, url string) error
 	Create(ctx context.Context, link *models.Link) error
 }
@@ -16,6 +16,5 @@ type LinkRepository interface {
 type CacheRepository interface {
 	Set(ctx context.Context, link *models.Link) error
 	Delete(ctx context.Context, origin string) error
-	GetByOrigin(ctx context.Context, origin string) (string, error)
-	GetByShorten(ctx context.Context, short string) (string, error)
+	GetByString(ctx context.Context, origin string) (string, error)
 }

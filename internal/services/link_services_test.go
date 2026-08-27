@@ -66,7 +66,7 @@ func (c *MockCacheRepository) GetByShorten(ctx context.Context, shortLink string
 	return "", nil
 }
 
-func (c *MockCacheRepository) GetByOrigin(ctx context.Context, originUrl string) (string, error) {
+func (c *MockCacheRepository) GetByString(ctx context.Context, originUrl string) (string, error) {
 	args := c.Called(ctx, originUrl)
 	if args.Get(0) == nil {
 		return "", args.Error(1)

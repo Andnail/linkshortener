@@ -32,7 +32,7 @@ func (l *LinkService) CreateLink(ctx context.Context, originUrl string) (*models
 		return nil, apperrors.ErrInvalidURL
 	}
 
-	if link, err := l.cache.GetByOrigin(ctx, originUrl); err == nil && link != "" {
+	if link, err := l.cache.GetByString(ctx, originUrl); err == nil && link != "" {
 		l.logger.Info("Found in cache")
 		return &models.Link{
 			Origin:  originUrl,
@@ -69,17 +69,11 @@ func (l *LinkService) DeleteLink(ctx context.Context, url string) error {
 	return nil
 }
 
-// func (l *LinkService) GetAllLinks(ctx context.Context) ([]models.Link, error) {
-// 	links, err := l.repo.GetAll(ctx)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("Error in gettin all links")
-// 	}
-
-// 	l.logger.Info("All links got successfuly")
-// 	return links, nil
-// }
-
 func (l *LinkService) GetByShorten(ctx context.Context, short string) (string, error) {
+	if link, err := l.cache.GetByString(ctx, short); err != nil {
+		return link, nil
+	}
+
 	origin, err := l.repo.GetByShorten(ctx, short)
 	if err != nil {
 		return "", apperrors.ErrLinkNotFound
