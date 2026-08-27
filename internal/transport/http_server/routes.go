@@ -1,4 +1,4 @@
-package httptrans
+package httpserver
 
 import "net/http"
 

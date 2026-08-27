@@ -19,7 +19,7 @@ func NewLogger(level string) *slog.Logger {
 	}
 
 	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     logLevel,
-		AddSource: true,
+		Level: logLevel,
+		//AddSource: true,
 	}))
 }

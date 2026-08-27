@@ -18,24 +18,28 @@ type MockLinkRepository struct {
 	mock.Mock
 }
 
-func (m *MockLinkRepository) Create(ctx context.Context, link *models.Link) error {
-	args := m.Called(ctx, link)
+type MockCacheRepository struct {
+	mock.Mock
+}
+
+func (l *MockLinkRepository) Create(ctx context.Context, link *models.Link) error {
+	args := l.Called(ctx, link)
 	return args.Error(0)
 }
 
-func (m *MockLinkRepository) Delete(ctx context.Context, id int) error {
-	args := m.Called(ctx, id)
+func (l *MockLinkRepository) Delete(ctx context.Context, url string) error {
+	args := l.Called(ctx, url)
 	return args.Error(0)
 }
 
-func (m *MockLinkRepository) GetAll(ctx context.Context) ([]models.Link, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]models.Link), args.Error(1)
+// func (m *MockLinkRepository) GetAll(ctx context.Context) ([]models.Link, error) {
+// 	args := m.Called(ctx)
+// 	return args.Get(0).([]models.Link), args.Error(1)
 
-}
+// }
 
-func (m *MockLinkRepository) GetByShorten(ctx context.Context, shortLink string) (string, error) {
-	args := m.Called(ctx, shortLink)
+func (l *MockLinkRepository) GetByShorten(ctx context.Context, shortLink string) (string, error) {
+	args := l.Called(ctx, shortLink)
 
 	if args.Get(0) == nil {
 		return "", args.Error(1)
@@ -44,11 +48,40 @@ func (m *MockLinkRepository) GetByShorten(ctx context.Context, shortLink string)
 	return args.Get(0).(string), args.Error(1)
 }
 
+func (l *MockLinkRepository) GetByOrigin(ctx context.Context, originLink string) (string, error) {
+	return "", nil
+}
+
+func (c *MockCacheRepository) Set(ctx context.Context, link *models.Link) error {
+	args := c.Called(ctx, link)
+	return args.Error(0)
+}
+
+func (c *MockCacheRepository) Delete(ctx context.Context, url string) error {
+	args := c.Called(ctx, url)
+	return args.Error(0)
+}
+
+func (c *MockCacheRepository) GetByShorten(ctx context.Context, shortLink string) (string, error) {
+	return "", nil
+}
+
+func (c *MockCacheRepository) GetByOrigin(ctx context.Context, originUrl string) (string, error) {
+	args := c.Called(ctx, originUrl)
+	if args.Get(0) == nil {
+		return "", args.Error(1)
+	}
+
+	return args.Get(0).(string), nil
+}
+
 func TestCreateLink_Success(t *testing.T) {
 	mockRepo := new(MockLinkRepository)
+	mockCache := new(MockCacheRepository)
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	service := services.NewLinkService(mockRepo, logger)
+	service := services.NewLinkService(mockRepo, mockCache, logger)
 
 	origin := "https://www.google.com"
 
@@ -66,7 +99,9 @@ func TestCreateLink_Success(t *testing.T) {
 
 func TestCreate_InvalidURL(t *testing.T) {
 	mockRepo := new(MockLinkRepository)
-	service := services.NewLinkService(mockRepo, nil)
+	mockCache := new(MockCacheRepository)
+
+	service := services.NewLinkService(mockRepo, mockCache, nil)
 
 	link, err := service.CreateLink(context.Background(), "not a url")
 
@@ -79,8 +114,10 @@ func TestCreate_InvalidURL(t *testing.T) {
 
 func TestCreateLink_DBError(t *testing.T) {
 	mockRepo := new(MockLinkRepository)
+	mockCache := new(MockCacheRepository)
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	service := services.NewLinkService(mockRepo, logger)
+	service := services.NewLinkService(mockRepo, mockCache, logger)
 
 	dbErr := errors.New("database connection lost")
 

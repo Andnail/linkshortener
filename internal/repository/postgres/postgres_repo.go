@@ -1,4 +1,4 @@
-package postgres
+package postgresrepo
 
 import (
 	//"linkshortener/internal/logger"
@@ -23,11 +23,10 @@ func NewPostgresRepository(db *pgxpool.Pool) repository.LinkRepository {
 }
 
 func (p *PostgresRepository) Create(ctx context.Context, link *models.Link) error {
-	stmt := `INSERT INTO links (id, origin, shorten, created_at)
-	VALUES ($1, $2, $3,$4);`
+	stmt := `INSERT INTO links (origin, shorten, created_at)
+	VALUES ( $1, $2,$3);`
 
 	_, err := p.db.Exec(ctx, stmt,
-		link.ID,
 		link.Origin,
 		link.Shorten,
 		link.CreatedAt,
@@ -40,10 +39,10 @@ func (p *PostgresRepository) Create(ctx context.Context, link *models.Link) erro
 	return nil
 }
 
-func (p *PostgresRepository) Delete(ctx context.Context, id int) error {
-	stmt := `DELETE FROM links WHERE id = $1`
+func (p *PostgresRepository) Delete(ctx context.Context, url string) error {
+	stmt := `DELETE FROM links WHERE origin = $1`
 
-	_, err := p.db.Exec(ctx, stmt, id)
+	_, err := p.db.Exec(ctx, stmt, url)
 	if err != nil {
 		return fmt.Errorf("Delete link: %w", err)
 	}
@@ -51,32 +50,47 @@ func (p *PostgresRepository) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (p *PostgresRepository) GetAll(ctx context.Context) ([]models.Link, error) {
-	stmt := `SELECT id, origin, shorten, created_at 
-		FROM links
-		ORDER BY created_at DESC`
-	rows, err := p.db.Query(ctx, stmt)
+// func (p *PostgresRepository) GetAll(ctx context.Context) ([]models.Link, error) {
+// 	stmt := `SELECT id, origin, shorten, created_at
+// 		FROM links
+// 		ORDER BY created_at DESC`
+// 	rows, err := p.db.Query(ctx, stmt)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("Query links %w", err)
+// 	}
+// 	defer rows.Close()
+
+// 	allLinks := make([]models.Link, 0)
+
+// 	for rows.Next() {
+// 		var l models.Link
+// 		err := rows.Scan(&l.ID, &l.Origin, &l.Shorten, &l.CreatedAt)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("links scan: %w", err)
+// 		}
+// 		allLinks = append(allLinks, l)
+// 	}
+
+// 	if err := rows.Err(); err != nil {
+// 		return nil, fmt.Errorf("iterate links: %w", err)
+// 	}
+
+// 	return allLinks, nil
+// }
+
+func (p *PostgresRepository) GetByOrigin(ctx context.Context, originLink string) (string, error) {
+	var l string
+	stmt := `SELECT id, origin, shorten, created_at
+ 		FROM links WHERE origin = $1`
+
+	rows := p.db.QueryRow(ctx, stmt, originLink)
+
+	err := rows.Scan(&l)
 	if err != nil {
-		return nil, fmt.Errorf("Query links %w", err)
-	}
-	defer rows.Close()
-
-	allLinks := make([]models.Link, 0)
-
-	for rows.Next() {
-		var l models.Link
-		err := rows.Scan(&l.ID, &l.Origin, &l.Shorten, &l.CreatedAt)
-		if err != nil {
-			return nil, fmt.Errorf("links scan: %w", err)
-		}
-		allLinks = append(allLinks, l)
+		return "", fmt.Errorf("link scan: %w", err)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate links: %w", err)
-	}
-
-	return allLinks, nil
+	return l, nil
 }
 
 func (p *PostgresRepository) GetByShorten(ctx context.Context, shortLink string) (string, error) {

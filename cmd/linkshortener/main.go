@@ -4,16 +4,21 @@ import (
 	"context"
 	"linkshortener/internal/config"
 	postgresconnection "linkshortener/internal/database/postgres_connection"
+	redisconnection "linkshortener/internal/database/redis_connection"
 	"linkshortener/internal/logger"
-	"linkshortener/internal/repository/postgres"
+	postgresrepo "linkshortener/internal/repository/postgres"
+	redisrepo "linkshortener/internal/repository/redis"
 	"linkshortener/internal/services"
-	httptrans "linkshortener/internal/transport/http_trans"
+	httptrans "linkshortener/internal/transport/http_server"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-	//_ "github.com/jackc/pgx/v5/pgxpool"
+
+	_ "github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
 type application struct {
@@ -21,45 +26,55 @@ type application struct {
 	//error
 }
 
+func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Print("Failed to load from env")
+	}
+}
+
 // Парсинг флагов, соединение с бд, запуск сервера, логгер,
 func main() {
-	logg := logger.NewLogger("info")
+	logger := logger.NewLogger("info")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dsn := "postgres://web:database64@localhost:5432/links"
+	cfg := config.NewConfig()
 
-	cfg := config.NewConfig(dsn, "8080", 2, 10, time.Hour)
-
-	pool, err := postgresconnection.PostgresCreatePool(ctx, cfg, logg)
+	rdb, err := redisconnection.CreateRedisClient(ctx, cfg, logger)
 	if err != nil {
-		logg.Error("Failed to create pool")
+		logger.Error("Failed to create redis client")
 	}
+	defer rdb.Close()
 
+	pool, err := postgresconnection.PostgresCreatePool(ctx, cfg, logger)
+	if err != nil {
+		logger.Error("Failed to create pool")
+	}
 	defer pool.Close()
 
-	linkRepo := postgres.NewPostgresRepository(pool)
+	linkRepo := postgresrepo.NewPostgresRepository(pool)
+	cacheRepo := redisrepo.NewRedisRepository(rdb)
 
-	linkService := services.NewLinkService(linkRepo, logg)
+	linkService := services.NewLinkService(linkRepo, cacheRepo, logger)
 
 	mux := http.NewServeMux()
 
-	handler := httptrans.NewHandler(logg, linkService)
+	handler := httptrans.NewHandler(logger, linkService)
 	handler.Route(mux)
 
 	server := &http.Server{
-		Addr:         ":" + cfg.AppPort,
+		Addr:         ":" + cfg.App.AppPort,
 		Handler:      mux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
-	logg.Info("Starting server on port", "port", cfg.AppPort)
+	logger.Info("Starting server on port", "port", cfg.App.AppPort)
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logg.Error("Server closed", "error", err)
+			logger.Error("Server closed", "error", err)
 		}
 	}()
 
@@ -67,15 +82,15 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logg.Info("shutting down server...")
+	logger.Info("shutting down server...")
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		logg.Error("server shutdown fail", "error", err)
+		logger.Error("server shutdown fail", "error", err)
 	}
 
-	logg.Info("server stopped")
+	logger.Info("server stopped")
 
 }

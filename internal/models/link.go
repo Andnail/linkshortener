@@ -8,8 +8,8 @@ import (
 
 type Link struct {
 	ID        int
-	Origin    string
-	Shorten   string
+	Origin    string `redis:"origin"`
+	Shorten   string `redis:"shorten"`
 	CreatedAt time.Time
 }
 

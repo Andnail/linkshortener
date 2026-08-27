@@ -13,16 +13,16 @@ import (
 	"time"
 )
 
-var ()
-
 type LinkService struct {
 	repo   repository.LinkRepository
+	cache  repository.CacheRepository
 	logger *slog.Logger
 }
 
-func NewLinkService(r repository.LinkRepository, logger *slog.Logger) *LinkService {
+func NewLinkService(r repository.LinkRepository, cache repository.CacheRepository, logger *slog.Logger) *LinkService {
 	return &LinkService{
 		repo:   r,
+		cache:  cache,
 		logger: logger,
 	}
 }
@@ -30,6 +30,14 @@ func NewLinkService(r repository.LinkRepository, logger *slog.Logger) *LinkServi
 func (l *LinkService) CreateLink(ctx context.Context, originUrl string) (*models.Link, error) {
 	if !isValidUrl(originUrl) {
 		return nil, apperrors.ErrInvalidURL
+	}
+
+	if link, err := l.cache.GetByOrigin(ctx, originUrl); err == nil && link != "" {
+		l.logger.Info("Found in cache")
+		return &models.Link{
+			Origin:  originUrl,
+			Shorten: link,
+		}, nil
 	}
 
 	link := &models.Link{
@@ -43,29 +51,33 @@ func (l *LinkService) CreateLink(ctx context.Context, originUrl string) (*models
 		return nil, fmt.Errorf("Create link %w", err)
 	}
 
+	if err := l.cache.Set(ctx, link); err != nil {
+		l.logger.Error("Failed to add link to cache", "error", err)
+	}
+
 	l.logger.Info("Link created successfuly", "shorten", link.Shorten)
 	return link, nil
 
 }
 
-func (l *LinkService) DeleteLink(ctx context.Context, id int) error {
-	if err := l.repo.Delete(ctx, id); err != nil {
-		l.logger.Error("Failed to delete link by id ")
-		return fmt.Errorf("Failed to delete link by id %v: %w", id, err)
+func (l *LinkService) DeleteLink(ctx context.Context, url string) error {
+	if err := l.repo.Delete(ctx, url); err != nil {
+		l.logger.Error("Failed to delete link by origin url ")
+		return fmt.Errorf("Failed to delete link by origin url %v: %w", url, err)
 	}
 
 	return nil
 }
 
-func (l *LinkService) GetAllLinks(ctx context.Context) ([]models.Link, error) {
-	links, err := l.repo.GetAll(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("Error in gettin all links")
-	}
+// func (l *LinkService) GetAllLinks(ctx context.Context) ([]models.Link, error) {
+// 	links, err := l.repo.GetAll(ctx)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("Error in gettin all links")
+// 	}
 
-	l.logger.Info("All links got successfuly")
-	return links, nil
-}
+// 	l.logger.Info("All links got successfuly")
+// 	return links, nil
+// }
 
 func (l *LinkService) GetByShorten(ctx context.Context, short string) (string, error) {
 	origin, err := l.repo.GetByShorten(ctx, short)
