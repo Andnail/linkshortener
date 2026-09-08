@@ -1,0 +1,7 @@
+.git
+.env
+*.md
+.vscode
+__debug_bin
+*.test
+*.out

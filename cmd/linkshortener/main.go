@@ -27,7 +27,7 @@ type application struct {
 }
 
 func init() {
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load(""); err != nil {
 		log.Print("Failed to load from env")
 	}
 }
@@ -44,12 +44,14 @@ func main() {
 	rdb, err := redisconnection.CreateRedisClient(ctx, cfg, logger)
 	if err != nil {
 		logger.Error("Failed to create redis client")
+		os.Exit(1)
 	}
 	defer rdb.Close()
 
 	pool, err := postgresconnection.PostgresCreatePool(ctx, cfg, logger)
 	if err != nil {
 		logger.Error("Failed to create pool")
+		os.Exit(1)
 	}
 	defer pool.Close()
 

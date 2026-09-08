@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"linkshortener/internal/models"
 	"linkshortener/internal/repository"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -20,11 +21,11 @@ func NewRedisRepository(client *redis.Client) repository.CacheRepository {
 }
 
 func (r *RedisRepository) Set(ctx context.Context, link *models.Link) error {
-	if err := r.client.Set(ctx, link.Origin, link.Shorten, 0).Err(); err != nil {
+	if err := r.client.Set(ctx, link.Origin, link.Shorten, 1*time.Hour).Err(); err != nil {
 		return fmt.Errorf("Failed to create a redis row")
 	}
 
-	if err := r.client.Set(ctx, link.Shorten, link.Origin, 0).Err(); err != nil {
+	if err := r.client.Set(ctx, link.Shorten, link.Origin, 1*time.Hour).Err(); err != nil {
 		return fmt.Errorf("Failed to create a redis row")
 	}
 

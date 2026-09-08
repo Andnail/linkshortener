@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS  links (
+    id SERIAL PRIMARY KEY,
+    origin VARCHAR NOT NULL,
+    shorten VARCHAR UNIQUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS  idx_links_shorten ON links(shorten);
