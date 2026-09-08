@@ -40,6 +40,14 @@ func (l *LinkService) CreateLink(ctx context.Context, originUrl string) (*models
 		}, nil
 	}
 
+	if link, err := l.repo.GetByOrigin(ctx, originUrl); err == nil && link != "" {
+		l.logger.Info("Found in DB")
+		return &models.Link{
+			Origin:  originUrl,
+			Shorten: link,
+		}, nil
+	}
+
 	link := &models.Link{
 		Origin:    originUrl,
 		Shorten:   generateRandomString(),

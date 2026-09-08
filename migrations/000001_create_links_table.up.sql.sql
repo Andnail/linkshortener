@@ -5,4 +5,5 @@ CREATE TABLE IF NOT EXISTS  links (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS  idx_links_shorten ON links(shorten);
+CREATE INDEX IF NOT EXISTS idx_links_shorten ON links(shorten);
+CREATE INDEX IF NOT EXISTS idx_links_origin ON links(origin);
